@@ -23,6 +23,7 @@ require 'openssl'
 require 'uri'
 require 'cgi'
 require 'net/http'
+require 'net/https'
 require 'json'
 
 module CloudstackClient
@@ -548,7 +549,17 @@ module CloudstackClient
 
       url = "#{@api_url}?#{data}&signature=#{signature}"
 
-      response = Net::HTTP.get_response(URI.parse(url))
+      uri = URI.parse(url)
+
+      if uri.scheme == "http"
+        response = Net::HTTP.get_response(URI.parse(url))
+      elsif uri.scheme == "https"
+        http = Net::HTTP.new(uri.host, uri.port)
+        http.use_ssl = true
+        http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+        request = Net::HTTP::Get.new(uri.request_uri)
+        response = http.request(request)
+      end
 
       if !response.is_a?(Net::HTTPOK) then
         puts "Error #{response.code}: #{response.message}"
